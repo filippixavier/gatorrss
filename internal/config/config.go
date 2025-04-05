@@ -23,24 +23,31 @@ func getConfigFilePath() (string, error) {
 }
 
 func write(cfg Config) error {
-	stream, err := json.Marshal(&cfg)
-
-	if err != nil {
-		return err
-	}
-
 	path, err := getConfigFilePath()
 	if err != nil {
 		return err
 	}
 
-	os.WriteFile(path, stream, 0644)
+	file, err := os.Open(path)
+
+	if err != nil {
+		return err
+	}
+
+	defer file.Close()
+
+	encoder := json.NewEncoder(file)
+
+	if err := encoder.Encode(cfg); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (c Config) SetUser(userName string) error {
+func (c *Config) SetUser(userName string) error {
 	c.CurrentUserName = userName
-	return write(c)
+	return write(*c)
 }
 
 func Read() (Config, error) {
@@ -51,13 +58,17 @@ func Read() (Config, error) {
 		return Config{}, err
 	}
 
-	stream, err := os.ReadFile(path)
+	file, err := os.Open(path)
 
 	if err != nil {
 		return Config{}, err
 	}
 
-	if err := json.Unmarshal(stream, &config); err != nil {
+	defer file.Close()
+
+	decoder := json.NewDecoder(file)
+
+	if err := decoder.Decode(&config); err != nil {
 		return Config{}, err
 	}
 
