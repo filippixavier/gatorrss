@@ -8,21 +8,30 @@ import (
 )
 
 func main() {
-	conf, err := config.Read()
-
+	cfg, err := config.Read()
 	if err != nil {
-		fmt.Printf("%v\n", err)
+		fmt.Print("%w\n", err)
 		os.Exit(1)
 	}
 
-	conf.SetUser("gueltir")
+	st := state{cfg: &cfg}
 
-	newConf, err := config.Read()
+	cmds := commands{list: make(map[string]func(*state, command) error)}
 
-	if err != nil {
-		fmt.Printf("%v\n", err)
+	cmds.register("login", handlerLoging)
+
+	args := os.Args
+
+	if len(args) < 2 {
+		fmt.Println("Missing arguments")
 		os.Exit(1)
-	} else {
-		fmt.Println(newConf)
 	}
+
+	cmd := command{name: args[1], args: args[2:]}
+
+	if err := cmds.run(&st, cmd); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	os.Exit(0)
 }

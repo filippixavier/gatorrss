@@ -28,7 +28,7 @@ func write(cfg Config) error {
 		return err
 	}
 
-	file, err := os.Open(path)
+	file, err := os.Create(path)
 
 	if err != nil {
 		return err
