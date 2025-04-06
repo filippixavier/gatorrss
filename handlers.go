@@ -58,3 +58,19 @@ func handlerReset(s *state, cmd command) error {
 
 	return nil
 }
+
+func handlerGetUsers(s *state, cmd command) error {
+	if users, err := s.db.GetUsers(context.Background()); err != nil {
+		return err
+	} else {
+		for _, user := range users {
+			fmt.Printf("* %s", user.Name)
+			if user.Name == s.cfg.CurrentUserName {
+				fmt.Print(" (current)")
+			}
+			fmt.Println()
+		}
+	}
+
+	return nil
+}
