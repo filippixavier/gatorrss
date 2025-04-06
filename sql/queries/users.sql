@@ -20,4 +20,4 @@ SELECT * FROM users
 WHERE id = $1 LIMIT 1;
 
 -- name: ClearUsers :exec
-TRUNCATE TABLE users;
+DELETE FROM users;
