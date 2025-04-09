@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/filippixavier/gatorrss/internal/database"
@@ -180,5 +181,38 @@ func handlerUnfollow(s *state, cmd command, usr database.User) error {
 	if _, err := s.db.DeleteFeedsFollow(context.Background(), database.DeleteFeedsFollowParams{UserID: usr.ID, FeedID: feed.ID}); err != nil {
 		return err
 	}
+	return nil
+}
+
+func handleBrowse(s *state, cmd command, usr database.User) error {
+	limit := 2
+	if len(cmd.args) > 0 {
+		val, err := strconv.Atoi(cmd.args[0])
+		fmt.Println(val)
+		if err == nil && val > 0 {
+			limit = val
+		} else {
+			fmt.Println("Invalid limit specified, defaulting to 2")
+		}
+	}
+
+	fmt.Println(limit)
+
+	posts, err := s.db.GetUserPosts(context.Background(), database.GetUserPostsParams{ID: usr.ID, Limit: int32(limit)})
+
+	if err != nil {
+		return err
+	}
+
+	for _, post := range posts {
+		fmt.Printf("Title: %s\n", post.Title)
+		fmt.Printf("Publication date: %v\n", post.PublishedAt)
+		fmt.Printf("Permalink: %s\n", post.Url)
+		if post.Description.Valid {
+			fmt.Println(post.Description.String)
+		}
+		fmt.Println()
+	}
+
 	return nil
 }
