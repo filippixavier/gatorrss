@@ -76,13 +76,27 @@ func handlerGetUsers(s *state, cmd command) error {
 }
 
 func handlerAgg(s *state, cmd command) error {
-	feed, err := fetchFeed(context.Background(), "https://www.wagslane.dev/index.xml")
+	if len(cmd.args) < 1 {
+		return fmt.Errorf("missing interval argument")
+	}
+
+	duration, err := time.ParseDuration(cmd.args[0])
 
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(feed)
+	if duration < 5*time.Second {
+		return fmt.Errorf("please set a longer delay, minimum delay: 5s")
+	}
+
+	fmt.Printf("Collecting feeds every %v\n", duration)
+
+	ticker := time.NewTicker(duration)
+
+	for ; ; <-ticker.C {
+		scrapeFeeds(s)
+	}
 
 	return nil
 }
@@ -150,5 +164,21 @@ func handlerFollowing(s *state, cmd command, usr database.User) error {
 		fmt.Println(feed.Feedname)
 	}
 
+	return nil
+}
+
+func handlerUnfollow(s *state, cmd command, usr database.User) error {
+	if len(cmd.args[0]) == 0 {
+		return fmt.Errorf("missing the url argument")
+	}
+
+	feed, err := s.db.GetFeedByUrl(context.Background(), cmd.args[0])
+	if err != nil {
+		return err
+	}
+
+	if _, err := s.db.DeleteFeedsFollow(context.Background(), database.DeleteFeedsFollowParams{UserID: usr.ID, FeedID: feed.ID}); err != nil {
+		return err
+	}
 	return nil
 }
