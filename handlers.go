@@ -102,6 +102,9 @@ func handlerAddFeed(s *state, cmd command) error {
 		return e
 	} else {
 		fmt.Println(feed)
+		if _, err := s.db.CreateFeedsFollow(context.Background(), database.CreateFeedsFollowParams{ID: uuid.New(), CreatedAt: time.Now(), UpdatedAt: time.Now(), FeedID: feed.ID, UserID: usr.ID}); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -119,6 +122,44 @@ func handlerListFeeds(s *state, cmd command) error {
 		fmt.Printf("url: %s\n", feed.Url)
 		fmt.Printf("owner: %s\n", feed.Owner)
 		fmt.Println()
+	}
+
+	return nil
+}
+
+func handlerFollow(s *state, cmd command) error {
+	if len(cmd.args) == 0 {
+		return fmt.Errorf("missing the url argument")
+	}
+
+	feed, err := s.db.GetFeedByUrl(context.Background(), cmd.args[0])
+	if err != nil {
+		return fmt.Errorf("given url has never been added")
+	}
+
+	user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
+
+	if err != nil {
+		return err
+	}
+
+	if _, err := s.db.CreateFeedsFollow(context.Background(), database.CreateFeedsFollowParams{ID: uuid.New(), CreatedAt: time.Now(), UpdatedAt: time.Now(), UserID: user.ID, FeedID: feed.ID}); err != nil {
+		return err
+	}
+
+	fmt.Println(user.Name + " " + feed.Name)
+
+	return nil
+}
+
+func handlerFollowing(s *state, cmd command) error {
+	feeds, err := s.db.GetFeedFollowsForUser(context.Background(), s.cfg.CurrentUserName)
+	if err != nil {
+		return err
+	}
+
+	for _, feed := range feeds {
+		fmt.Println(feed.Feedname)
 	}
 
 	return nil
