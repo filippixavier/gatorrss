@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func handlerLoging(s *state, cmd command) error {
+func handlerLogging(s *state, cmd command) error {
 	if len(cmd.args) == 0 {
 		return fmt.Errorf("missing the username argument")
 	}
@@ -87,15 +87,9 @@ func handlerAgg(s *state, cmd command) error {
 	return nil
 }
 
-func handlerAddFeed(s *state, cmd command) error {
+func handlerAddFeed(s *state, cmd command, usr database.User) error {
 	if len(cmd.args) < 2 {
 		return errors.New("missing parameters, expected: addfeed name url")
-	}
-
-	usr, e := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
-
-	if e != nil {
-		return e
 	}
 
 	if feed, e := s.db.CreateFeeds(context.Background(), database.CreateFeedsParams{ID: uuid.New(), CreatedAt: time.Now(), UpdatedAt: time.Now(), Name: cmd.args[0], Url: cmd.args[1], UserID: usr.ID}); e != nil {
@@ -127,7 +121,7 @@ func handlerListFeeds(s *state, cmd command) error {
 	return nil
 }
 
-func handlerFollow(s *state, cmd command) error {
+func handlerFollow(s *state, cmd command, usr database.User) error {
 	if len(cmd.args) == 0 {
 		return fmt.Errorf("missing the url argument")
 	}
@@ -137,23 +131,17 @@ func handlerFollow(s *state, cmd command) error {
 		return fmt.Errorf("given url has never been added")
 	}
 
-	user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
-
-	if err != nil {
+	if _, err := s.db.CreateFeedsFollow(context.Background(), database.CreateFeedsFollowParams{ID: uuid.New(), CreatedAt: time.Now(), UpdatedAt: time.Now(), UserID: usr.ID, FeedID: feed.ID}); err != nil {
 		return err
 	}
 
-	if _, err := s.db.CreateFeedsFollow(context.Background(), database.CreateFeedsFollowParams{ID: uuid.New(), CreatedAt: time.Now(), UpdatedAt: time.Now(), UserID: user.ID, FeedID: feed.ID}); err != nil {
-		return err
-	}
-
-	fmt.Println(user.Name + " " + feed.Name)
+	fmt.Println(usr.Name + " " + feed.Name)
 
 	return nil
 }
 
-func handlerFollowing(s *state, cmd command) error {
-	feeds, err := s.db.GetFeedFollowsForUser(context.Background(), s.cfg.CurrentUserName)
+func handlerFollowing(s *state, cmd command, usr database.User) error {
+	feeds, err := s.db.GetFeedFollowsForUser(context.Background(), usr.Name)
 	if err != nil {
 		return err
 	}
